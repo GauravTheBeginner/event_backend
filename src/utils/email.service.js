@@ -30,7 +30,7 @@ export const sendOTP = async (email, otp) => {
 
   try {
     const emailTransporter = createTransporter();
-    
+    console.log('Email', process.env.EMAIL_USER);
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@eventplatform.com',
       to: email,
