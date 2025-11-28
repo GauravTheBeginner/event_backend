@@ -43,12 +43,13 @@ export const requestOTP = async (email) => {
   });
 
   // Send OTP via email
-  await sendOTP(email, otpCode);
+  const emailResult = await sendOTP(email, otpCode);
 
   return {
     success: true,
-    message: 'OTP sent successfully',
-    email
+    message: emailResult.fallback ? 'OTP generated - check server logs' : 'OTP sent successfully',
+    email,
+    emailStatus: emailResult.fallback ? 'fallback' : 'sent'
   };
 };
 

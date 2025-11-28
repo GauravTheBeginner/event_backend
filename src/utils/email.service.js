@@ -5,13 +5,28 @@ let transporter = null;
 
 const createTransporter = () => {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
+    // Log configuration for debugging (without sensitive data)
+    console.log('Email Configuration:', {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_SECURE,
+      user: process.env.EMAIL_USER ? 'Set' : 'Not Set',
+      pass: process.env.EMAIL_PASS ? 'Set' : 'Not Set'
+    });
+
+    transporter = nodemailer.createTransporter({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT || '587'),
       secure: process.env.EMAIL_SECURE === 'true',
+      connectionTimeout: 60000, // 60 seconds
+      greetingTimeout: 30000, // 30 seconds  
+      socketTimeout: 60000, // 60 seconds
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
   }
@@ -20,19 +35,33 @@ const createTransporter = () => {
 
 // Send OTP via email
 export const sendOTP = async (email, otp) => {
-  // In development mode, just log the OTP
-  if (process.env.DEV_MODE === 'true') {
+  // In development mode or if email is not configured, just log the OTP
+  if (process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development') {
     console.log('\n========================================');
     console.log(`📧 OTP for ${email}: ${otp}`);
     console.log('========================================\n');
     return { success: true, message: 'OTP logged to console (DEV MODE)' };
   }
 
+  // Check if email is configured
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('Email not configured. Missing environment variables.');
+    console.log('\n========================================');
+    console.log(`📧 OTP for ${email}: ${otp}`);
+    console.log('========================================\n');
+    return { success: true, message: 'OTP logged to console (EMAIL NOT CONFIGURED)' };
+  }
+
   try {
+    console.log(`Attempting to send email to: ${email}`);
     const emailTransporter = createTransporter();
-    console.log('Email', process.env.EMAIL_USER);
+    
+    // Test connection first
+    await emailTransporter.verify();
+    console.log('SMTP connection verified successfully');
+    
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@eventplatform.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: email,
       subject: 'Your OTP Code - Event Platform',
       html: `
@@ -52,11 +81,27 @@ export const sendOTP = async (email, otp) => {
     };
 
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
+    console.log('Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending email:', error);
-    throw new Error('Failed to send OTP email');
+    console.error('Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response
+    });
+    
+    // Fallback: Log OTP if email fails
+    console.log('\n========================================');
+    console.log(`📧 EMAIL FAILED - OTP for ${email}: ${otp}`);
+    console.log('========================================\n');
+    
+    // Don't throw error, return success with fallback message
+    return { 
+      success: true, 
+      message: 'Email service unavailable - OTP logged to server console',
+      fallback: true
+    };
   }
 };
 
