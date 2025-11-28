@@ -1,7 +1,7 @@
 import prisma from '../db/client.js';
 import { generateOTP, getOTPExpiry } from '../utils/otp.util.js';
 import { generateToken } from '../utils/jwt.util.js';
-import { sendOTP } from '../utils/email.service.js';
+import { sendOTP } from './email.service.js';
 import { validateEmail } from '../utils/validation.util.js';
 
 // Request OTP for email authentication
@@ -47,7 +47,7 @@ export const requestOTP = async (email) => {
 
   return {
     success: true,
-    message: emailResult.fallback ? 'OTP generated - check server logs' : 'OTP sent successfully',
+    message: emailResult.fallback ? `OTP for ${email}: ${otp}` : 'OTP sent successfully',
     email,
     emailStatus: emailResult.fallback ? 'fallback' : 'sent'
   };
