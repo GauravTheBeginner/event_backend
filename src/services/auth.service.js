@@ -47,7 +47,7 @@ export const requestOTP = async (email) => {
 
   return {
     success: true,
-    message: emailResult.fallback ? `OTP for ${email}: ${otp}` : 'OTP sent successfully',
+    message: emailResult.fallback ? `OTP for ${email}: ${otpCode}` : 'OTP sent successfully',
     email,
     emailStatus: emailResult.fallback ? 'fallback' : 'sent'
   };
