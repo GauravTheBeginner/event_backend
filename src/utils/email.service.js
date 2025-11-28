@@ -1,36 +1,19 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// Create reusable transporter
-let transporter = null;
+// Create Resend instance
+let resend = null;
 
-const createTransporter = () => {
-  if (!transporter) {
+const createResendClient = () => {
+  if (!resend) {
     // Log configuration for debugging (without sensitive data)
-    console.log('Email Configuration:', {
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: process.env.EMAIL_SECURE,
-      user: process.env.EMAIL_USER ? 'Set' : 'Not Set',
-      pass: process.env.EMAIL_PASS ? 'Set' : 'Not Set'
+    console.log('Email Configuration (Resend):', {
+      apiKey: process.env.RESEND_API_KEY ? 'Set' : 'Not Set',
+      fromEmail: process.env.EMAIL_FROM || 'onboarding@resend.dev'
     });
 
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
-      connectionTimeout: 60000, // 60 seconds
-      greetingTimeout: 30000, // 30 seconds  
-      socketTimeout: 60000, // 60 seconds
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+    resend = new Resend(process.env.RESEND_API_KEY);
   }
-  return transporter;
+  return resend;
 };
 
 // Send OTP via email
@@ -43,26 +26,22 @@ export const sendOTP = async (email, otp) => {
     return { success: true, message: 'OTP logged to console (DEV MODE)' };
   }
 
-  // Check if email is configured
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('Email not configured. Missing environment variables.');
+  // Check if Resend API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.error('Resend API key not configured. Missing RESEND_API_KEY environment variable.');
     console.log('\n========================================');
     console.log(`📧 OTP for ${email}: ${otp}`);
     console.log('========================================\n');
-    return { success: true, message: 'OTP logged to console (EMAIL NOT CONFIGURED)' };
+    return { success: true, message: 'OTP logged to console (RESEND NOT CONFIGURED)' };
   }
 
   try {
-    console.log(`Attempting to send email to: ${email}`);
-    const emailTransporter = createTransporter();
+    console.log(`Attempting to send email via Resend to: ${email}`);
+    const resendClient = createResendClient();
     
-    // Test connection first
-    await emailTransporter.verify();
-    console.log('SMTP connection verified successfully');
-    
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: email,
+    const emailData = {
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [email],
       subject: 'Your OTP Code - Event Platform',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -80,15 +59,19 @@ export const sendOTP = async (email, otp) => {
       `
     };
 
-    const info = await emailTransporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    const { data, error } = await resendClient.emails.send(emailData);
+    
+    if (error) {
+      throw new Error(`Resend API error: ${error.message}`);
+    }
+    
+    console.log('Email sent successfully via Resend:', data.id);
+    return { success: true, messageId: data.id };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending email via Resend:', error);
     console.error('Error details:', {
-      code: error.code,
-      command: error.command,
-      response: error.response
+      message: error.message,
+      name: error.name
     });
     
     // Fallback: Log OTP if email fails
@@ -111,11 +94,37 @@ export const verifyEmailConfig = async () => {
     return { success: true, message: 'DEV MODE - Email not configured' };
   }
   
+  // Check if Resend API key is set
+  if (!process.env.RESEND_API_KEY) {
+    return { 
+      success: false, 
+      message: 'Missing required environment variable: RESEND_API_KEY' 
+    };
+  }
+  
   try {
-    const emailTransporter = createTransporter();
-    await emailTransporter.verify();
-    return { success: true, message: 'Email configuration valid' };
+    const resendClient = createResendClient();
+    
+    // Test Resend connection by checking API status
+    // Note: Resend doesn't have a verify method like nodemailer
+    // We'll just validate the API key format and create the client
+    if (process.env.RESEND_API_KEY.startsWith('re_')) {
+      return { success: true, message: 'Resend configuration valid' };
+    } else {
+      return { 
+        success: false, 
+        message: 'Invalid Resend API key format. Should start with "re_"' 
+      };
+    }
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Resend verification error:', error);
+    return { 
+      success: false, 
+      message: `Resend client initialization failed: ${error.message}`,
+      details: {
+        apiKeySet: !!process.env.RESEND_API_KEY,
+        fromEmail: process.env.EMAIL_FROM || 'onboarding@resend.dev'
+      }
+    };
   }
 };

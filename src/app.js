@@ -31,25 +31,11 @@ app.use((req, res, next) => {
 });
 
 // Health check route
-app.get('/health', async (req, res) => {
-  const { verifyEmailConfig } = await import('./utils/email.service.js');
-  const emailStatus = await verifyEmailConfig();
-  
+app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: 'connected', // Assume connected if app starts
-      email: emailStatus.success ? 'configured' : 'not_configured',
-      emailMessage: emailStatus.message
-    },
-    environment: {
-      NODE_ENV: process.env.NODE_ENV,
-      DEV_MODE: process.env.DEV_MODE,
-      EMAIL_HOST: process.env.EMAIL_HOST || 'not_set',
-      EMAIL_PORT: process.env.EMAIL_PORT || 'not_set'
-    }
+    timestamp: new Date().toISOString()
   });
 });
 
