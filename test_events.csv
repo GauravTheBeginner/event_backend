@@ -1,0 +1,4 @@
+eventName,eventDescription,eventType,eventDates,eventLocation,locationDataPCityName,locationDataPStateKey,eventPlaceAddress,eventPlaceName,eventAggregateOfferOfferPrice,language,duration,ticketsNeededFor,image,bookingUrl
+Tech Conference 2025,Annual technology conference featuring the latest innovations,Conference,2025-12-15T09:00:00Z,Mumbai Convention Center,Mumbai,MH,123 Marine Drive,Mumbai Convention Hall,2500,en,3 days,Developers and Tech Enthusiasts,https://example.com/tech-conf.jpg,https://example.com/book-tech
+Music Festival 2025,Three-day music festival with international artists,Festival,2025-11-20T18:00:00Z,Goa Beach Resort,Goa,GA,456 Beach Road,Sunset Beach Arena,5000,en,3 days,Music Lovers,https://example.com/music-fest.jpg,
+Startup Meetup,Monthly meetup for startup founders and investors,Meetup,2025-11-30T17:00:00Z,Bangalore Tech Park,Bangalore,KA,789 Tech Park Lane,Innovation Hub,0,en,2 hours,Entrepreneurs,https://example.com/startup-meet.jpg,

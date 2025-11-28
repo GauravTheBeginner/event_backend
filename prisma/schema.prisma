@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  events      Event[]       @relation("creator_events")
+  bookings    Booking[]
+  messages    ChatMessage[] @relation("sender_messages")
+  otps        OTP[]
+  chatMembers ChatMember[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model OTP {
+  otpId      String   @id @default(uuid()) @map("otp_id")
+  email      String
+  otpCode    String   @map("otp_code")
+  isVerified Boolean  @default(false) @map("is_verified")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("otps")
+}
+
+model Event {
+  id                            String    @id @default(uuid())
+  bookingUrl                    String?   @map("booking_url")
+  locationDataPCityName         String    @map("location_data_p_city_name")
+  locationDataPStateKey         String    @map("location_data_p_state_key")
+  eventPlaceAddress             String    @map("event_place_address")
+  eventPlaceName                String    @map("event_place_name")
+  eventAggregateOfferOfferPrice String    @map("event_aggregate_offer_offer_price")
+  eventDescription              String    @map("event_description") @db.Text
+  eventName                     String    @map("event_name")
+  eventType                     String    @map("event_type")
+  eventDates                    DateTime? @map("event_dates")
+  eventLocation                 String    @map("event_location")
+  language                      String
+  duration                      String
+  ticketsNeededFor              String    @map("tickets_needed_for")
+  image                         String
+  source                        String    @default("user")
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("creator_events", fields: [createdById], references: [id])
+
+  bookings Booking[]
+  chat     EventChat?
+
+  isPublic  Boolean  @default(true) @map("is_public")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([eventDates])
+  @@index([createdById])
+  @@map("events")
+}
+
+model Booking {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  eventId    String   @map("event_id")
+  qty        Int      @default(1)
+  totalPrice Decimal  @default(0) @map("total_price")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@map("bookings")
+}
+
+model EventChat {
+  id        String    @id @default(uuid())
+  chatId    String    @unique @map("chat_id")
+  eventId   String    @unique @map("event_id")
+  eventName String    @map("event_name")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  event    Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  members  ChatMember[]
+  messages ChatMessage[]
+
+  @@index([expiresAt])
+  @@map("event_chats")
+}
+
+model ChatMember {
+  id       String   @id @default(uuid())
+  chatId   String   @map("chat_id")
+  userId   String   @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  chat EventChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
+  @@map("chat_members")
+}
+
+model ChatMessage {
+  id        String    @id @default(uuid())
+  chatId    String    @map("chat_id")
+  senderId  String    @map("sender_id")
+  content   String    @db.Text
+  mentions  Json?     @db.JsonB
+  createdAt DateTime  @default(now()) @map("created_at")
+  editedAt  DateTime? @map("edited_at")
+  deleted   Boolean   @default(false)
+  // reply-to and highlight fields removed
+
+  chat    EventChat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender  User          @relation("sender_messages", fields: [senderId], references: [id], onDelete: Cascade)
+  // reply relations removed
+
+  @@index([chatId])
+  @@index([senderId])
+  @@index([createdAt])
+  
+  @@map("chat_messages")
+}

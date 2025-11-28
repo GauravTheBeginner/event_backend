@@ -1,0 +1,736 @@
+{
+	"info": {
+		"_postman_id": "event-platform-api-collection",
+		"name": "Event Platform API",
+		"description": "Complete API collection for Event Platform Backend with OTP authentication, event management, bookings, and real-time chat.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Request OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"user_email\", response.email);",
+									"    console.log(\"OTP requested for:\", response.email);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/request-otp",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"request-otp"
+							]
+						},
+						"description": "Request an OTP code for email authentication. Check console logs for OTP code."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"auth_token\", response.token);",
+									"    pm.environment.set(\"user_id\", response.user.id);",
+									"    console.log(\"Authentication successful! Token saved.\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"otpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/verify-otp",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"verify-otp"
+							]
+						},
+						"description": "Verify OTP code and receive JWT token. Token is automatically saved to environment."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get authenticated user's profile information."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout user. Client should delete token from storage."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for OTP-based email login."
+		},
+		{
+			"name": "🎉 Events",
+			"item": [
+				{
+					"name": "Create Event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"event_id\", response.event.id);",
+									"    pm.environment.set(\"chat_id\", response.chat.id);",
+									"    console.log(\"Event created:\", response.event.eventName);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventName\": \"Tech Conference 2024\",\n  \"eventDescription\": \"Annual technology conference featuring latest innovations in AI, Web3, and Cloud Computing.\",\n  \"eventType\": \"conference\",\n  \"eventDates\": \"2024-06-15T09:00:00Z\",\n  \"eventLocation\": \"Convention Center\",\n  \"locationDataPCityName\": \"San Francisco\",\n  \"locationDataPStateKey\": \"CA\",\n  \"eventPlaceAddress\": \"123 Main St\",\n  \"eventPlaceName\": \"SF Convention Center\",\n  \"eventAggregateOfferOfferPrice\": \"99.00\",\n  \"language\": \"en\",\n  \"duration\": \"2 days\",\n  \"ticketsNeededFor\": \"General Admission\",\n  \"image\": \"https://example.com/image.jpg\",\n  \"bookingUrl\": \"https://example.com/book\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events"
+							]
+						},
+						"description": "Create a new event. Automatically creates a chat room for the event."
+					},
+					"response": []
+				},
+				{
+					"name": "List Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events?page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "eventType",
+									"value": "conference",
+									"disabled": true
+								},
+								{
+									"key": "city",
+									"value": "San Francisco",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "tech",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all public events with optional filters (eventType, city, search)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Event by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}"
+							]
+						},
+						"description": "Get single event by ID with creator info, chat details, and booking count."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Event",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventName\": \"Updated Event Name\",\n  \"eventDescription\": \"Updated description\",\n  \"eventDates\": \"2024-07-01T09:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}"
+							]
+						},
+						"description": "Update event details. Only event owner or admin can update."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Event",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}"
+							]
+						},
+						"description": "Delete event. Only event owner or admin can delete. Cascades to chat, bookings, etc."
+					},
+					"response": []
+				}
+			],
+			"description": "Event management endpoints for creating, listing, updating, and deleting events."
+		},
+		{
+			"name": "🎫 Bookings",
+			"item": [
+				{
+					"name": "Book Event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"booking_id\", response.booking.id);",
+									"    console.log(\"Event booked successfully!\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"qty\": 2,\n  \"totalPrice\": 198.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}/book",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"book"
+							]
+						},
+						"description": "Book an event. Automatically adds user to the event chat room."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Bookings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/me?page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"bookings",
+								"me"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get authenticated user's bookings with full event details."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Booking",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"bookings",
+								"{{booking_id}}"
+							]
+						},
+						"description": "Cancel a booking. Removes user from chat if not event creator."
+					},
+					"response": []
+				}
+			],
+			"description": "Booking management endpoints for creating and managing event bookings."
+		},
+		{
+			"name": "💬 Chat",
+			"item": [
+				{
+					"name": "Get Chat Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}/chat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"chat"
+							]
+						},
+						"description": "Get event chat details including member count and message count. Only accessible to event creator and users who booked the event."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Messages",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}/chat/messages?page=1&limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"chat",
+								"messages"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get chat messages with sender information. Only accessible to event creator and users who booked the event."
+					},
+					"response": []
+				},
+				{
+					"name": "Post Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"message_id\", response.message.id);",
+									"    console.log(\"Message posted:\", response.message.content);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Can't wait for this event! 🎉\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}/chat/messages",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"chat",
+								"messages"
+							]
+						},
+						"description": "Post a message to event chat. Only accessible to event creator and users who booked the event."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Members",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/{{event_id}}/chat/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"events",
+								"{{event_id}}",
+								"chat",
+								"members"
+							]
+						},
+						"description": "Get all chat members with join time and creator status."
+					},
+					"response": []
+				},
+				{
+					"name": "Edit Message",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Updated message content\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/messages/{{message_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"chat",
+								"messages",
+								"{{message_id}}"
+							]
+						},
+						"description": "Edit your own message. Sets editedAt timestamp."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Message",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/messages/{{message_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"chat",
+								"messages",
+								"{{message_id}}"
+							]
+						},
+						"description": "Delete your own message (soft delete). Message content is preserved but marked as deleted."
+					},
+					"response": []
+				}
+			],
+			"description": "Chat endpoints for event communication. Only accessible to event creators and users who have booked the event."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
