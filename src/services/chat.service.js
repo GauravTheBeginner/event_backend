@@ -161,7 +161,7 @@ export const getMembers = async (eventId) => {
           id: true,
           name: true,
           email: true,
-
+          avatarUrl: true
         }
       }
     }

@@ -32,3 +32,22 @@ export const logout = asyncHandler(async (req, res) => {
   
   res.status(200).json(result);
 });
+
+// PUT /auth/me
+export const updateProfile = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const data = req.body;
+  
+  const result = await authService.updateProfile(userId, data);
+  
+  res.status(200).json(result);
+});
+
+// GET /auth/:id
+export const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const result = await authService.getUserById(id);
+  
+  res.status(200).json(result);
+});

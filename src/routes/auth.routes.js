@@ -15,7 +15,13 @@ router.post('/verify-otp', validateBody(verifyOTPSchema), authController.verifyO
 // GET /auth/me - Get current user (protected)
 router.get('/me', authenticate, authController.getCurrentUser);
 
+// PUT /auth/me - Update profile (protected)
+router.put('/me', authenticate, authController.updateProfile);
+
 // POST /auth/logout - Logout (protected, client-side token deletion)
 router.post('/logout', authenticate, authController.logout);
+
+// GET /auth/:id - Get user by ID (protected)
+router.get('/:id', authenticate, authController.getUserById);
 
 export default router;

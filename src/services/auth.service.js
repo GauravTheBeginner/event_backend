@@ -90,6 +90,10 @@ export const verifyOTP = async (email, otpCode) => {
       email: true,
       name: true,
       role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
       createdAt: true,
       updatedAt: true
     }
@@ -123,8 +127,70 @@ export const getCurrentUser = async (userId) => {
       email: true,
       name: true,
       role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
       createdAt: true,
       updatedAt: true
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    success: true,
+    user
+  };
+};
+
+// Update user profile
+export const updateProfile = async (userId, data) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      preferences: data.preferences,
+      about: data.about,
+      phoneNumber: data.phoneNumber,
+      avatarUrl: data.avatarUrl,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+
+  return {
+    success: true,
+    user
+  };
+};
+
+// Get user by ID (for public/chat view)
+export const getUserById = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true, // Maybe hide email for privacy? Keeping it for now as per request "detail"
+      role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
+      createdAt: true
     }
   });
 

@@ -8,6 +8,8 @@ import eventRoutes from './routes/event.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import chatRoutes from './routes/chat.routes.js';
 import eventBookingRoutes from './routes/eventBooking.routes.js';
+import preferencesRoutes from './routes/preferences.routes.js';
+import wishlistRoutes from './routes/wishlist.routes.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware.js';
@@ -44,7 +46,9 @@ app.use('/auth', authRoutes);
 app.use('/events', eventRoutes);
 app.use('/events', eventBookingRoutes); // Event-specific booking route
 app.use('/bookings', bookingRoutes);
+app.use('/preferences', preferencesRoutes);
 app.use('/', chatRoutes); // Chat routes (includes /events/:id/chat/* and /chat/*)
+app.use('/wishlist', wishlistRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
