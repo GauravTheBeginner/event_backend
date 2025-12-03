@@ -51,3 +51,31 @@ export const getUserById = asyncHandler(async (req, res) => {
   
   res.status(200).json(result);
 });
+
+// GET /auth/users (admin only)
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const { page, limit, search } = req.query;
+  
+  const result = await authService.getAllUsers({ page, limit, search });
+  
+  res.status(200).json(result);
+});
+
+// DELETE /auth/users/:id (admin only)
+export const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const result = await authService.deleteUser(id);
+  
+  res.status(200).json(result);
+});
+
+// PUT /auth/users/:id (admin only)
+export const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  
+  const result = await authService.updateUser(id, data);
+  
+  res.status(200).json(result);
+});

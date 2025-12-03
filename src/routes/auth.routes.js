@@ -1,6 +1,6 @@
 import express from 'express';
 import * as authController from '../controllers/auth.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, requireAdmin } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validation.middleware.js';
 import { requestOTPSchema, verifyOTPSchema } from '../utils/validation.util.js';
 
@@ -20,6 +20,15 @@ router.put('/me', authenticate, authController.updateProfile);
 
 // POST /auth/logout - Logout (protected, client-side token deletion)
 router.post('/logout', authenticate, authController.logout);
+
+// GET /auth/users - Get all users (protected, admin only)
+router.get('/users', authenticate, requireAdmin, authController.getAllUsers);
+
+// DELETE /auth/users/:id - Delete user (protected, admin only)
+router.delete('/users/:id', authenticate, requireAdmin, authController.deleteUser);
+
+// PUT /auth/users/:id - Update user (protected, admin only)
+router.put('/users/:id', authenticate, requireAdmin, authController.updateUser);
 
 // GET /auth/:id - Get user by ID (protected)
 router.get('/:id', authenticate, authController.getUserById);

@@ -211,3 +211,113 @@ export const logout = async () => {
     message: 'Logged out successfully. Please delete the token from client-side storage.'
   };
 };
+
+// Get all users (admin only)
+export const getAllUsers = async (query = {}) => {
+  const { page = 1, limit = 50, search = '' } = query;
+  
+  const skip = (page - 1) * limit;
+  
+  // Build where clause for search
+  const where = search
+    ? {
+        OR: [
+          { email: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } }
+        ]
+      }
+    : {};
+
+  // Get total count
+  const total = await prisma.user.count({ where });
+
+  // Get users
+  const users = await prisma.user.findMany({
+    where,
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          bookings: true,
+          wishlist: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    skip,
+    take: parseInt(limit)
+  });
+
+  return {
+    success: true,
+    users,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+};
+
+// Delete user (admin only)
+export const deleteUser = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  await prisma.user.delete({
+    where: { id: userId }
+  });
+
+  return {
+    success: true,
+    message: 'User deleted successfully'
+  };
+};
+
+// Update user (admin only)
+export const updateUser = async (userId, data) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      role: data.role,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      about: data.about
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      preferences: true,
+      about: true,
+      phoneNumber: true,
+      avatarUrl: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+
+  return {
+    success: true,
+    user
+  };
+};
