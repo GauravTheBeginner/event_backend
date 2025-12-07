@@ -62,7 +62,7 @@ model Event {
   eventDescription              String    @map("event_description") @db.Text
   eventName                     String    @map("event_name")
   eventType                     String    @map("event_type")
-  eventDates                    DateTime? @map("event_dates")
+  eventDates                    String?   @map("event_dates")
   eventLocation                 String    @map("event_location")
   language                      String
   duration                      String

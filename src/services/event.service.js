@@ -15,9 +15,7 @@ const calculateChatExpiry = (eventDate) => {
 export const createEvent = async (userId, eventData) => {
   
   // Parse event date if provided
-  
-  // Parse event date if provided
-  const eventDates = eventData.eventDates ? new Date(eventData.eventDates) : null;
+  const eventDates = eventData.eventDates;
   
   // Calculate chat expiry
   const chatExpiry = calculateChatExpiry(eventDates);
@@ -50,7 +48,7 @@ export const createEvent = async (userId, eventData) => {
     let chat = null;
 
     // Auto-create EventChat only if source is NOT 'csv'
-    if (eventData.source !== 'csv') {
+    if (eventData.source !== 'csv' && eventData.source !== 'scrapper') {
       chat = await tx.eventChat.create({
         data: {
           chatId: `chat_${event.id}`,
@@ -233,13 +231,12 @@ export const getEventById = async (eventId) => {
 
 // Update event
 export const updateEvent = async (eventId, eventData) => {
-  // Parse event date if provided
   const updateData = { ...eventData };
+  
+  // Check if we need to update chat expiry (only for events with eventDates and not from csv/scrapper)
   if (eventData.eventDates) {
-    updateData.eventDates = new Date(eventData.eventDates);
-    
-    // Update chat expiry if event date changed
-    const newChatExpiry = calculateChatExpiry(updateData.eventDates);
+    // Keep eventDates as string (don't convert to Date)
+    updateData.eventDates = eventData.eventDates;
     
     // Update event and chat expiry in transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -248,11 +245,16 @@ export const updateEvent = async (eventId, eventData) => {
         data: updateData
       });
 
-      if (newChatExpiry) {
-        await tx.eventChat.updateMany({
-          where: { eventId: event.id },
-          data: { expiresAt: newChatExpiry }
-        });
+      // Only update chat expiry if source is NOT 'csv' or 'scrapper'
+      if (event.source !== 'csv' && event.source !== 'scrapper') {
+        const newChatExpiry = calculateChatExpiry(updateData.eventDates);
+        
+        if (newChatExpiry) {
+          await tx.eventChat.updateMany({
+            where: { eventId: event.id },
+            data: { expiresAt: newChatExpiry }
+          });
+        }
       }
 
       return event;
@@ -296,9 +298,15 @@ export const bulkCreateEvents = async (userId, eventsData) => {
     failed: []
   };
 
-  // Process each event
-  for (let i = 0; i < eventsData.length; i++) {
-    const eventData = eventsData[i];
+  const BATCH_SIZE = 3; // Process 3 events at a time (reduced to prevent connection pool exhaustion)
+  const DELAY_BETWEEN_BATCHES = 3000; // 3 seconds delay between batches
+  const MAX_RETRIES = 2; // Retry failed transactions up to 2 times
+  
+  // Helper function to delay execution
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Helper function to create event with retry logic
+  const createEventWithRetry = async (eventData, retries = MAX_RETRIES) => {
     try {
       // Clean up property names (remove quotes if present)
       const cleanedData = {};
@@ -307,32 +315,77 @@ export const bulkCreateEvents = async (userId, eventsData) => {
         const cleanKey = key.replace(/['"]/g, '').trim();
         cleanedData[cleanKey] = eventData[key];
       }
-
-      // Parse event date if provided
-      if (cleanedData.eventDates) {
-        cleanedData.eventDates = new Date(cleanedData.eventDates);
+      // if cleanedData.source is not set, set it to 'csv'
+      if (!cleanedData.source) {
+        cleanedData.source = 'csv';
       }
-
-      // Set source to CSV
-      cleanedData.source = 'csv';
-      
-      console.log('Cleaned eventData:', cleanedData);
-      console.log('bookingUrl value:', cleanedData.bookingUrl);
       
       // Create event using existing service
       const result = await createEvent(userId, cleanedData);
-      
-      results.successful.push({
-        row: i + 2, // +2 because row 1 is header and array is 0-indexed
-        eventName: eventData.eventName,
-        eventId: result.event.id
-      });
+      return { success: true, result };
     } catch (error) {
-      results.failed.push({
-        row: i + 2,
-        eventName: eventData.eventName || 'Unknown',
-        error: error.message
-      });
+      // Check if it's a transaction timeout error and we have retries left
+      if (error.message.includes('Transaction') && retries > 0) {
+        console.log(`   ⚠️  Retrying ${eventData.eventName || 'Unknown'} (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})...`);
+        await delay(2000); // Wait 2 seconds before retry
+        return createEventWithRetry(eventData, retries - 1);
+      }
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Process events in batches
+  for (let i = 0; i < eventsData.length; i += BATCH_SIZE) {
+    const batch = eventsData.slice(i, i + BATCH_SIZE);
+    
+    // Process batch in parallel
+    const batchPromises = batch.map(async (eventData, batchIndex) => {
+      const globalIndex = i + batchIndex;
+      const createResult = await createEventWithRetry(eventData);
+      
+      if (createResult.success) {
+        return {
+          success: true,
+          row: globalIndex + 2, // +2 because row 1 is header and array is 0-indexed
+          eventName: eventData.eventName,
+          eventId: createResult.result.event.id
+        };
+      } else {
+        return {
+          success: false,
+          row: globalIndex + 2,
+          eventName: eventData.eventName || 'Unknown',
+          error: createResult.error
+        };
+      }
+    });
+
+    // Wait for batch to complete
+    const batchResults = await Promise.all(batchPromises);
+    
+    // Categorize results
+    batchResults.forEach(result => {
+      if (result.success) {
+        results.successful.push({
+          row: result.row,
+          eventName: result.eventName,
+          eventId: result.eventId
+        });
+      } else {
+        results.failed.push({
+          row: result.row,
+          eventName: result.eventName,
+          error: result.error
+        });
+      }
+    });
+
+    // Log progress
+    console.log(`   📊 Processed ${Math.min(i + BATCH_SIZE, eventsData.length)}/${eventsData.length} events`);
+    
+    // Add delay between batches (except for the last batch)
+    if (i + BATCH_SIZE < eventsData.length) {
+      await delay(DELAY_BETWEEN_BATCHES);
     }
   }
 

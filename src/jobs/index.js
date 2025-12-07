@@ -1,4 +1,5 @@
 import { scheduleCleanupJob } from './cleanupChats.job.js';
+import { scheduleScraperJob } from './eventScrapper.js';
 
 // Initialize all background jobs
 export const startJobs = () => {
@@ -6,6 +7,9 @@ export const startJobs = () => {
   
   // Start chat cleanup job
   scheduleCleanupJob();
+  
+  // Start event scraper job
+  scheduleScraperJob();
   
   // Add more jobs here as needed
   // e.g., scheduleEmailNotifications();
