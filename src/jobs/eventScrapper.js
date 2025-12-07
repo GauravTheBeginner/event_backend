@@ -153,8 +153,13 @@ async function runFullWorkflow() {
   // 2. Run scraper
   console.log('🕷️  Starting web scraper...\n');
   const browser = await puppeteer.launch({ 
-    headless: true, 
-    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+    headless: "new", 
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu'
+    ] 
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 800 });
