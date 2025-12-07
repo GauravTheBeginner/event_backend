@@ -200,7 +200,7 @@ async function runFullWorkflow() {
       // Use a default admin user ID for scraper uploads
       // You may want to configure this or create a system user
       const systemUserId_railway = '6608e2ad-5dce-4386-8705-cf1881c90d6a';
-      const systemUserId = '3bf81b58-3881-4885-8328-6e932907d4f2';
+      const systemUserId = '643f52ac-3020-4a89-af93-131e01d3e648' || process.env.SYSTEM_USER_ID;
 
       const bulkResult = await bulkCreateEvents(systemUserId, dbEvents);
       console.log(`   ✅ ${bulkResult.message}`);
