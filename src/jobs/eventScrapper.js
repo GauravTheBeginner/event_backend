@@ -210,13 +210,19 @@ async function runFullWorkflow() {
 
 // Schedule scraper job every 2 hours
 export const scheduleScraperJob = () => {
+  // Run every 10 minutes: */10 * * * *
+  // For testing, you can use '*/1 * * * *' to run every minute
   const schedule = '0 */2 * * *';
-
-  cron.schedule(schedule, () => {
-    console.log('\n🕒 Scheduled scraper job started');
-    runFullWorkflow().catch(err => {
-      console.error('❌ Scheduled scraper job failed:', err);
-    });
+  
+  cron.schedule(schedule, runFullWorkflow, {
+    timezone: process.env.TZ || 'UTC'
+  });
+  
+  console.log(`Scheduled scraper job to run every 2 hours: ${schedule}`);
+  
+  // Run immediately on startup
+  runFullWorkflow().catch(error => {
+    console.error('❌ Scheduled scraper job failed:', error);
   });
 };
 
